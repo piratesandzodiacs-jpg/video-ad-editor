@@ -85,7 +85,7 @@ def main():
     ap.add_argument("--clips", required=True); ap.add_argument("--ec", required=True)
     ap.add_argument("--fonts", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")); ap.add_argument("--out", required=True)
     ap.add_argument("--config", help="ملف JSON: clips و titles و bg (يغيّر الثوابت فوق). أمثلة بـ garage/reels/")
-    ap.add_argument("--masks", help="مجلد أقنعة تغبيش اللوحات من garage/plates.py (mask_<رقم>.mp4)")
+    ap.add_argument("--masks", help="مجلد plate_<رقم>.mov من garage/plates.py (لوحة الكراج فوق لوحات الأرقام)")
     a = ap.parse_args()
     global CLIPS, TITLES
     bg_file, bg_ss = CLIPS[4][0], 8.0
@@ -106,11 +106,11 @@ def main():
     inputs, g = [], []
     for i, (f, ss, dur) in enumerate(CLIPS):
         inputs += ["-ss", str(ss), "-t", f"{dur}", "-i", f"{a.clips}/{f}"]
-    # أقنعة تغبيش لوحات الأرقام (من garage/plates.py): mask_<رقم المقطع>.mp4
+    # لوحة الكراج فوق لوحات الأرقام (من garage/plates.py): plate_<رقم المقطع>.mov بدقة 4K
     masks = {}
     if a.masks:
         for i in range(len(CLIPS)):
-            mp = os.path.join(a.masks, f"mask_{i}.mp4")
+            mp = os.path.join(a.masks, f"plate_{i}.mov")
             if os.path.exists(mp):
                 masks[i] = len(CLIPS) + len(masks)
                 inputs += ["-i", mp]
@@ -118,8 +118,7 @@ def main():
     for i, (f, ss, dur) in enumerate(CLIPS):
         src = f"[{i}:v]fps=30,scale={W}:{H},setsar=1,format=yuv420p"
         if i in masks:
-            g.append(f"{src},split[o{i}][q{i}];[q{i}]scale=iw/36:ih/36,scale={W}:{H}:flags=neighbor[p{i}];"
-                     f"[{masks[i]}:v]fps=30,scale={W}:{H},format=gray[k{i}];[o{i}][p{i}][k{i}]maskedmerge[z{i}]")
+            g.append(f"{src}[o{i}];[{masks[i]}:v]fps=30,scale={W}:{H},format=rgba[k{i}];[o{i}][k{i}]overlay=format=auto,format=yuv420p[z{i}]")
             src = f"[z{i}]"
         else:
             g.append(f"{src}[z{i}]")
