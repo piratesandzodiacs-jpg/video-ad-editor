@@ -84,7 +84,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--clips", required=True); ap.add_argument("--ec", required=True)
     ap.add_argument("--fonts", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")); ap.add_argument("--out", required=True)
+    ap.add_argument("--config", help="ملف JSON: clips و titles و bg (يغيّر الثوابت فوق). أمثلة بـ garage/reels/")
     a = ap.parse_args()
+    global CLIPS, TITLES
+    bg_file, bg_ss = CLIPS[4][0], 8.0
+    if a.config:
+        import json
+        cfg = json.load(open(a.config, encoding="utf-8"))
+        CLIPS = [tuple(c) for c in cfg["clips"]]
+        TITLES = [(l, w, RED if c == "red" else WHITE, s, e) for l, w, c, s, e in cfg["titles"]]
+        bg_file, bg_ss = cfg["bg"]
     tmp = tempfile.mkdtemp()
     items = make_titles(a.fonts, tmp)
 
@@ -124,7 +133,7 @@ def main():
     # كرت النهاية: خلفية متغبشة من لقطة النتيجة + طبقات endcard.py بالتتابع
     le = round(TOTAL - CUT_END + 0.3, 3); off = round(CUT_END - 0.3, 3)
     layers = [("logo", 0.35), ("head", 0.8), ("sub", 1.0), ("line", 1.15), ("phone", 1.35), ("addr", 1.6), ("handle", 1.85)]
-    inp = ["-i", main_mp4, "-ss", "8", "-t", str(le), "-i", f"{a.clips}/{CLIPS[4][0]}"]
+    inp = ["-i", main_mp4, "-ss", str(bg_ss), "-t", str(le), "-i", f"{a.clips}/{bg_file}"]
     for name, _ in layers:
         inp += ["-loop", "1", "-framerate", "30", "-t", str(le), "-i", f"{a.ec}/ec_{name}.png"]
     g = [f"[0:v]trim=duration={CUT_END},setpts=PTS-STARTPTS,fps=30,format=yuv420p,setsar=1[m]",
