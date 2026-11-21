@@ -83,12 +83,26 @@ def write_cover(boxes, banner_path, path, k=2):
         bw, bh = x1 - x0, y1 - y0
         if bw > 4 and bh > 4:
             fr[y0:y1, x0:x1] = (0, 0, 0, 255)
-            s = min(bw * 0.94 / bw0, bh * 0.94 / bh0)
-            w, h = max(2, int(bw0 * s)), max(2, int(bh0 * s))
-            small = cv2.resize(ban, (w, h), interpolation=cv2.INTER_AREA)
             cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-            px, py = cx - w // 2, cy - h // 2
-            fr[py:py + h, px:px + w, :3] = small
+            if bw / bh < 2.0:
+                # لوحة مربعة أو طويلة: نكدّس أجزاء صورتك (الشعار فوق، ثم الاسم، ثم Premium Auto Garage)
+                cuts = [0, int(bw0 * 0.308), int(bw0 * 0.69), bw0]
+                parts = [ban[:, cuts[1]:cuts[2]], ban[:, cuts[0]:cuts[1]], ban[:, cuts[2]:cuts[3]]]
+                inv = sum(p.shape[0] / p.shape[1] for p in parts)       # مجموع (ارتفاع/عرض)
+                wp = min(bw * 0.94, bh * 0.94 / inv)
+                y = cy - int(wp * inv / 2)
+                for part in parts:
+                    w, h = max(2, int(wp)), max(2, int(wp * part.shape[0] / part.shape[1]))
+                    small = cv2.resize(part, (w, h), interpolation=cv2.INTER_AREA)
+                    px = cx - w // 2
+                    fr[y:y + h, px:px + w, :3] = small
+                    y += h
+            else:
+                s = min(bw * 0.94 / bw0, bh * 0.94 / bh0)
+                w, h = max(2, int(bw0 * s)), max(2, int(bh0 * s))
+                small = cv2.resize(ban, (w, h), interpolation=cv2.INTER_AREA)
+                px, py = cx - w // 2, cy - h // 2
+                fr[py:py + h, px:px + w, :3] = small
         p.stdin.write(fr.tobytes())
     p.stdin.close(); p.wait()
 
