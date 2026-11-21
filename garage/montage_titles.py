@@ -4,9 +4,9 @@
 الكلمة بيضاء أو حمراء مع ظل ناعم، والعنوان يبقى لين نهاية مشهده ثم يروح مع القطع.
 
 الاستخدام:
-  bash garage/get_fonts.sh <fonts>            # مرة وحدة
+  # الخطوط جاهزة بـ garage/fonts (أو --fonts لمجلد ثاني)
   python3 garage/endcard.py --out <ec> ...     # طبقات كرت النهاية
-  python3 garage/montage_titles.py --clips <clips> --ec <ec> --fonts <fonts> --out out.mp4
+  python3 garage/montage_titles.py --clips <clips> --ec <ec> --out out.mp4
 تعديل المقاطع والعناوين من الثوابت CLIPS / CUTS / TITLES تحت.
 """
 import argparse, os, subprocess, tempfile
@@ -83,7 +83,7 @@ def run(cmd):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--clips", required=True); ap.add_argument("--ec", required=True)
-    ap.add_argument("--fonts", required=True); ap.add_argument("--out", required=True)
+    ap.add_argument("--fonts", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")); ap.add_argument("--out", required=True)
     a = ap.parse_args()
     tmp = tempfile.mkdtemp()
     items = make_titles(a.fonts, tmp)
