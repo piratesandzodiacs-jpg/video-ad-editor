@@ -1,11 +1,90 @@
 {
-  "clips": [["IMG_6158.mov", 0.0, 2.6], ["IMG_6158.mov", 2.6, 2.95], ["IMG_5812.mov", 2.0, 3.35],
-            ["IMG_6150.mov", 1.0, 3.35], ["IMG_6155.mov", 8.0, 3.35], ["IMG_5824.mov", 2.5, 2.85]],
-  "titles": [["THEY SAID IT COULDN’T BE", "REPAIRED.", "red", 0.2, 2.3],
-             ["STEP 1", "INSPECT", "white", 2.6, 4.9],
-             ["STEP 2", "REPAIR", "red", 5.2, 7.9],
-             ["STEP 3", "PAINT", "white", 8.2, 10.9],
-             ["THE RESULT", "DONE RIGHT.", "red", 11.2, 13.9],
-             ["ONE SIGN.", "ONE GARAGE.", "red", 14.3, 16.6]],
-  "bg": ["IMG_6155.mov", 8.0]
+ "clips": [
+  [
+   "IMG_6158.mov",
+   0.0,
+   2.6
+  ],
+  [
+   "IMG_6158.mov",
+   2.6,
+   2.95
+  ],
+  [
+   "IMG_5812.mov",
+   2.0,
+   3.35
+  ],
+  [
+   "IMG_6150.mov",
+   1.0,
+   3.35
+  ],
+  [
+   "IMG_6155.mov",
+   8.0,
+   3.35
+  ],
+  [
+   "IMG_5824.mov",
+   2.5,
+   2.85
+  ]
+ ],
+ "titles": [
+  [
+   "THEY SAID IT COULDN’T BE",
+   "REPAIRED.",
+   "red",
+   0.2,
+   2.3
+  ],
+  [
+   "STEP 1",
+   "INSPECT",
+   "white",
+   2.6,
+   4.9
+  ],
+  [
+   "STEP 2",
+   "REPAIR",
+   "red",
+   5.2,
+   7.9
+  ],
+  [
+   "STEP 3",
+   "PAINT",
+   "white",
+   8.2,
+   10.9
+  ],
+  [
+   "THE RESULT",
+   "DONE RIGHT.",
+   "red",
+   11.2,
+   13.9
+  ],
+  [
+   "ONE SIGN.",
+   "ONE GARAGE.",
+   "red",
+   14.3,
+   16.6
+  ]
+ ],
+ "bg": [
+  "IMG_6155.mov",
+  8.0
+ ],
+ "plates": {
+  "IMG_5812.mov": [
+   0,
+   650,
+   135,
+   785
+  ]
+ }
 }

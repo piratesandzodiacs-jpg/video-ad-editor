@@ -1,11 +1,108 @@
 {
-  "clips": [["IMG_5821.mov", 0.0, 2.6], ["IMG_5819.mov", 1.0, 2.95], ["IMG_5811.mov", 2.0, 3.35],
-            ["IMG_5816.mov", 1.0, 3.35], ["IMG_5815.mov", 0.5, 3.35], ["IMG_5824.mov", 2.5, 2.85]],
-  "titles": [["WELCOME TO", "THE GARAGE", "red", 0.2, 2.3],
-             ["WORK IN", "PROGRESS", "white", 2.6, 4.9],
-             ["STEP 1", "PREP", "red", 5.2, 7.9],
-             ["STEP 2", "FINISH", "white", 8.2, 10.9],
-             ["THE RESULT", "READY.", "red", 11.2, 13.9],
-             ["ONE SIGN.", "ONE GARAGE.", "red", 14.3, 16.6]],
-  "bg": ["IMG_5815.mov", 3.0]
+ "clips": [
+  [
+   "IMG_5821.mov",
+   0.0,
+   2.6
+  ],
+  [
+   "IMG_5819.mov",
+   1.0,
+   2.95
+  ],
+  [
+   "IMG_5811.mov",
+   2.0,
+   3.35
+  ],
+  [
+   "IMG_5816.mov",
+   1.0,
+   3.35
+  ],
+  [
+   "IMG_5815.mov",
+   0.5,
+   3.35
+  ],
+  [
+   "IMG_5824.mov",
+   2.5,
+   2.85
+  ]
+ ],
+ "titles": [
+  [
+   "WELCOME TO",
+   "THE GARAGE",
+   "red",
+   0.2,
+   2.3
+  ],
+  [
+   "WORK IN",
+   "PROGRESS",
+   "white",
+   2.6,
+   4.9
+  ],
+  [
+   "STEP 1",
+   "PREP",
+   "red",
+   5.2,
+   7.9
+  ],
+  [
+   "STEP 2",
+   "FINISH",
+   "white",
+   8.2,
+   10.9
+  ],
+  [
+   "THE RESULT",
+   "READY.",
+   "red",
+   11.2,
+   13.9
+  ],
+  [
+   "ONE SIGN.",
+   "ONE GARAGE.",
+   "red",
+   14.3,
+   16.6
+  ]
+ ],
+ "bg": [
+  "IMG_5815.mov",
+  3.0
+ ],
+ "plates": {
+  "IMG_5821.mov": [
+   680,
+   1190,
+   830,
+   1250
+  ],
+  "IMG_5819.mov": [
+   243,
+   535,
+   513,
+   605
+  ],
+  "IMG_5811.mov": [
+   640,
+   930,
+   810,
+   1230
+  ],
+  "IMG_5815.mov": [
+   675,
+   990,
+   785,
+   1100
+  ]
+ }
 }

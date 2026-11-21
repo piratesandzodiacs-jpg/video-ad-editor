@@ -85,6 +85,7 @@ def main():
     ap.add_argument("--clips", required=True); ap.add_argument("--ec", required=True)
     ap.add_argument("--fonts", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")); ap.add_argument("--out", required=True)
     ap.add_argument("--config", help="ملف JSON: clips و titles و bg (يغيّر الثوابت فوق). أمثلة بـ garage/reels/")
+    ap.add_argument("--masks", help="مجلد أقنعة تغبيش اللوحات من garage/plates.py (mask_<رقم>.mp4)")
     a = ap.parse_args()
     global CLIPS, TITLES
     bg_file, bg_ss = CLIPS[4][0], 8.0
@@ -105,13 +106,30 @@ def main():
     inputs, g = [], []
     for i, (f, ss, dur) in enumerate(CLIPS):
         inputs += ["-ss", str(ss), "-t", f"{dur}", "-i", f"{a.clips}/{f}"]
-        g.append(f"[{i}:v]fps=30,scale={1166*K}:-2,crop={1080*K}:{1920*K}:'(iw-ow)*t/{dur}':'(ih-oh)/2',"
-                 f"eq=contrast=1.08:saturation=1.12,vignette=PI/5,setsar=1,format=yuv420p[c{i}]")
+    # أقنعة تغبيش لوحات الأرقام (من garage/plates.py): mask_<رقم المقطع>.mp4
+    masks = {}
+    if a.masks:
+        for i in range(len(CLIPS)):
+            mp = os.path.join(a.masks, f"mask_{i}.mp4")
+            if os.path.exists(mp):
+                masks[i] = len(CLIPS) + len(masks)
+                inputs += ["-i", mp]
+    # الألوان طبيعية: بدون تباين ولا تشبّع ولا فينييت، فقط قص وتكبير خفيف للحركة
+    for i, (f, ss, dur) in enumerate(CLIPS):
+        src = f"[{i}:v]fps=30,scale={W}:{H},setsar=1,format=yuv420p"
+        if i in masks:
+            g.append(f"{src},split[o{i}][q{i}];[q{i}]scale=iw/36:ih/36,scale={W}:{H}:flags=neighbor[p{i}];"
+                     f"[{masks[i]}:v]fps=30,scale={W}:{H},format=gray[k{i}];[o{i}][p{i}][k{i}]maskedmerge[z{i}]")
+            src = f"[z{i}]"
+        else:
+            g.append(f"{src}[z{i}]")
+            src = f"[z{i}]"
+        g.append(f"{src}scale={1166*K}:-2,crop={1080*K}:{1920*K}:'(iw-ow)*t/{dur}':'(ih-oh)/2',setsar=1,format=yuv420p[c{i}]")
     prev = "c0"
     for i in range(1, len(CLIPS)):
         g.append(f"[{prev}][c{i}]xfade=transition=fade:duration={d}:offset={offs[i-1]:.3f}[x{i}]")
         prev = f"x{i}"
-    n = len(CLIPS)
+    n = len(CLIPS) + len(masks)
     for j, (lp, wp, s, e, wcy) in enumerate(items):
         ln, wn = n + 2 * j, n + 2 * j + 1
         hold = e - s + 0.6
@@ -128,7 +146,7 @@ def main():
     main_mp4 = f"{tmp}/main.mp4"
     run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error"] + inputs +
         ["-filter_complex", ";".join(g), "-map", "[v]", "-t", str(CUT_END), "-an", "-c:v", "libx264",
-         "-preset", "fast", "-crf", "17", "-pix_fmt", "yuv420p", main_mp4])
+         "-preset", "fast", "-crf", "17", "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", main_mp4])
 
     # كرت النهاية: خلفية متغبشة من لقطة النتيجة + طبقات endcard.py بالتتابع
     le = round(TOTAL - CUT_END + 0.3, 3); off = round(CUT_END - 0.3, 3)
@@ -152,7 +170,8 @@ def main():
     g.append(f"[m][{cur}]xfade=transition=fade:duration=0.3:offset={off},format=yuv420p[v]")
     run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error"] + inp +
         ["-filter_complex", ";".join(g), "-map", "[v]", "-t", str(TOTAL), "-an", "-c:v", "libx264",
-         "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", a.out])
+         "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709",
+         "-color_trc", "bt709", "-movflags", "+faststart", a.out])
     print("تم:", a.out)
 
 
