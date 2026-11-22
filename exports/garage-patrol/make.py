@@ -8,8 +8,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 HERE = os.path.dirname(os.path.abspath(__file__))
 # ------------------------------- CONFIG -------------------------------------
 SRC = '/root/.claude/uploads/46322b08-ba23-5045-b031-91dfb8e7d2b5/1da78717-1795368304943158.mp4'
-STICKER = os.path.join(HERE, 'sticker.png')
-BANNER = os.path.join(HERE, 'garage-banner.jpg')
+STICKER = os.path.join(HERE, 'nissan_sticker.png')   # car logo: spins in, then sits top-right
+BANNER = os.path.join(HERE, 'garage-banner.jpg')     # garage logo: goes on the number plate
 PLATE_IMG = os.path.join(HERE, 'plate_cover.png')   # replace this file to change the plate cover
 PLATE_TRACK = os.path.join(HERE, 'plate.json')
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'out.mp4')
@@ -20,11 +20,9 @@ WHITE = (255, 255, 255)
 TEXTS = [  # start, end, text, size, color, y (center, on 1080x1920)
     (2.25, 4.55, 'PREMIUM AUTO GARAGE', 76, WHITE, 1560),
     (2.45, 4.55, 'TRD GARAGE', 48, GOLD, 1640),
-    (4.75, 6.86, 'MOOSA MOHSIN TRD', 80, WHITE, 1560),
-    (4.95, 6.86, 'DETAILING  ·  WRAP  ·  TUNING', 44, GOLD, 1640),
 ]
-INTRO_END = 2.05      # sticker flies into the banner by this time
-BANNER_IN = 1.90      # banner fades in
+INTRO_END = 2.05      # car logo lands top-right by this time
+CORNER_W = 230        # car logo width in the top-right corner (px)
 # ----------------------------------------------------------------------------
 
 W, H, FPS = 1080, 1920, 30
@@ -34,14 +32,12 @@ DUR = N_SRC / SFPS
 N = int(round(DUR * FPS))
 
 # ---------- plate cover ----------
-if not os.path.exists(PLATE_IMG):  # placeholder until the real image arrives
-    pw, ph = 960, 400
-    im = Image.new('RGBA', (pw, ph), (12, 12, 14, 255))
-    d = ImageDraw.Draw(im)
-    d.rounded_rectangle([6, 6, pw - 7, ph - 7], 28, outline=GOLD, width=12)
-    f1 = ImageFont.truetype(FONT, 118); f2 = ImageFont.truetype(FONT2, 64)
-    d.text((pw / 2, ph * 0.40), 'MOOSA MOHSIN', font=f1, fill=WHITE, anchor='mm')
-    d.text((pw / 2, ph * 0.74), 'TRD GARAGE', font=f2, fill=GOLD, anchor='mm')
+if not os.path.exists(PLATE_IMG):  # build from the garage banner (letterboxed on black)
+    pw, ph = 960, 410
+    im = Image.new('RGBA', (pw, ph), (0, 0, 0, 255))
+    bn0 = Image.open(BANNER).convert('RGBA')
+    bw = pw - 12; bn0 = bn0.resize((bw, round(bn0.height * bw / bn0.width)), Image.LANCZOS)
+    im.alpha_composite(bn0, ((pw - bw) // 2, (ph - bn0.height) // 2))
     im.save(PLATE_IMG)
 plate = cv2.cvtColor(np.array(Image.open(PLATE_IMG).convert('RGBA')), cv2.COLOR_RGBA2BGRA)
 ptrack = {int(k): np.array(v, np.float32) for k, v in json.load(open(PLATE_TRACK)).items()}
@@ -58,22 +54,16 @@ def cover_plate(frame, f):
     a = wp[:, :, 3:4].astype(np.float32) / 255
     return (wp[:, :, :3] * a + frame * (1 - a)).astype(np.uint8)
 
-# ---------- banner (top-right) ----------
-BW = 540
-bn = Image.open(BANNER).convert('RGB')
-bn = bn.resize((BW, round(bn.height * BW / bn.width)), Image.LANCZOS)
-bmask = Image.new('L', bn.size, 0); ImageDraw.Draw(bmask).rounded_rectangle([0, 0, bn.width - 1, bn.height - 1], 14, fill=255)
-banner = np.dstack([np.array(bn), np.array(bmask)]).astype(np.float32) / 255
-BX, BY = W - BW - 36, 70
-BCX, BCY = BX + BW / 2, BY + bn.height / 2
 
 # ---------- 3D sticker renderer ----------
 s = cv2.imread(STICKER, cv2.IMREAD_UNCHANGED)[:, :, [2, 1, 0, 3]].astype(np.float32) / 255
-k = 860 / s.shape[1]
+k = 640 / s.shape[1]
 s = cv2.resize(s, None, fx=k, fy=k, interpolation=cv2.INTER_AREA)
 sh, sw = s.shape[:2]
 A = s[:, :, 3:4]
 face = np.concatenate([s[:, :, :3] * A, A], 2)
+BCX = W - 36 - CORNER_W / 2
+BCY = 70 + CORNER_W * sh / sw / 2
 yy, xx = np.mgrid[0:sh, 0:sw].astype(np.float32)
 diag = (xx + 0.55 * yy) / (sw + 0.55 * sh)
 FOC, THICK, LAYERS = 1500.0, 18.0, 14
@@ -90,9 +80,9 @@ def sticker_pose(t):
     sc = back_out(t / 0.38)
     cx, cy = W / 2, 820.0
     u = ease((t - 1.75) / (INTRO_END - 1.75))
-    sc *= 1 - u * 0.62                      # shrink toward banner logo size
+    sc *= 1 - u * (1 - CORNER_W / sw)      # shrink to corner size
     cx += (BCX - cx) * u; cy += (BCY - cy) * u
-    fade = 1 - ease((t - 1.88) / (INTRO_END - 1.88))
+    fade = 1.0
     shine = (t - 1.45) / 0.35 if 1.45 <= t <= 1.80 else -1
     return th, tilt, sc, cx, cy, fade, shine
 
@@ -179,16 +169,14 @@ for i in range(N):
     fr = cv2.resize(fr, (W, H), interpolation=cv2.INTER_AREA)[:, :, ::-1].astype(np.float32) / 255
     dim = 0.38 * (1 - ease((t - 1.7) / 0.4))          # darken behind the intro sticker
     fr *= 1 - dim
-    fr *= 1 - grad * (1 if t > 2.0 else 0)          # bottom shade for text
-    st = sticker_layer(t) if t < INTRO_END + 0.05 else None
+    fr *= 1 - grad * (1 if 2.0 < t < 4.6 else 0)    # bottom shade behind text
+    if t < INTRO_END:
+        st = sticker_layer(t)
+    else:
+        if 'corner' not in globals(): corner = render_sticker(INTRO_END)
+        st = corner
     if st is not None:
         fr = st[:, :, :3] + fr * (1 - st[:, :, 3:4])
-    bo = ease((t - BANNER_IN) / 0.35)
-    if bo > 0:
-        x = BX + int((1 - bo) * 30)
-        reg = fr[BY:BY + banner.shape[0], x:x + BW]
-        a = banner[:, :, 3:4] * bo
-        fr[BY:BY + banner.shape[0], x:x + BW] = banner[:, :, :3] * a + reg * (1 - a)
     tl = text_layer(t)
     if tl is not None:
         fr = tl[:, :, :3] * tl[:, :, 3:4] + fr * (1 - tl[:, :, 3:4])
