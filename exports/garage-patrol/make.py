@@ -18,8 +18,6 @@ FONT2 = '/usr/share/fonts/opentype/inter/InterDisplay-Bold.otf'
 GOLD = (242, 184, 32)
 WHITE = (255, 255, 255)
 TEXTS = [  # start, end, text, size, color, y (center, on 1080x1920)
-    (2.25, 4.55, 'PREMIUM AUTO GARAGE', 76, WHITE, 1560),
-    (2.45, 4.55, 'TRD GARAGE', 48, GOLD, 1640),
 ]
 INTRO_END = 2.05      # car logo lands top-right by this time
 CORNER_W = 230        # car logo width in the top-right corner (px)
@@ -169,7 +167,7 @@ for i in range(N):
     fr = cv2.resize(fr, (W, H), interpolation=cv2.INTER_AREA)[:, :, ::-1].astype(np.float32) / 255
     dim = 0.38 * (1 - ease((t - 1.7) / 0.4))          # darken behind the intro sticker
     fr *= 1 - dim
-    fr *= 1 - grad * (1 if 2.0 < t < 4.6 else 0)    # bottom shade behind text
+    if TEXTS and 2.0 < t < 4.6: fr *= 1 - grad      # bottom shade behind text
     if t < INTRO_END:
         st = sticker_layer(t)
     else:
