@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pivot Cover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/h264-mp4-encoder/embuild/dist/h264-mp4-encoder.web.js"></script>
+<style>
+html,body{margin:0;height:100%;background:#111;overflow:hidden;font-family:Cairo,sans-serif}
+#cv{display:block;margin:0 auto}
+#ui button{font:700 14px Cairo,sans-serif;padding:8px 16px;border:0;border-radius:8px;background:#F78E11;color:#000;cursor:pointer}
+#tm{color:#fff;font:600 13px Cairo,sans-serif;align-self:center}
+</style>
+</head>
+<body>
+<div id="t_hook" style="display:none">قبل ما تكمل بنفس الطريق</div>
+<div id="t_hero" style="display:none">غيّر المسار</div>
+<div id="t_sub" style="display:none">القرار اللي يقلب النتيجة</div>
+<div id="t_cta" style="display:none">اسحب وتعرف كيف</div>
+<div id="t_handle" style="display:none">@yourhandle</div>
+
+<canvas id="cv"></canvas>
+
+<div id="ui" style="position:fixed;bottom:0;left:0;right:0;padding:8px 6px calc(8px + env(safe-area-inset-bottom));background:rgba(0,0,0,.88);backdrop-filter:blur(12px);z-index:99;display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+  <button onclick="dlPNG()">PNG</button>
+  <button id="rb" onclick="toggleRec()">Export Video</button>
+  <span id="tm"></span>
+</div>
+
+<script>
+var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+var hc=document.createElement('canvas'), hx=hc.getContext('2d');
+var oc=document.createElement('canvas'), ox=oc.getContext('2d');
+var W=1,H=1,SC=1,rec=false,raf=0,_vblob=null;
+var BG='#FFFFFF', ORANGE='#F78E11', DARK='#000000', MUT='#8A847A', SUB='#5A554E';
+var FPS=30, INTRO=1, SCENE_END=4000, HOLD=5000, POSTER_T=6500;
+var TOTAL=INTRO+SCENE_END+HOLD;
+
+function gx(id){ return document.getElementById(id).textContent; }
+var T_HOOK=gx('t_hook'), T_HERO=gx('t_hero'), T_SUB=gx('t_sub'), T_CTA=gx('t_cta'), T_HANDLE=gx('t_handle');
+
+function prog(t,a,b){ if(t<=a)return 0; if(t>=b)return 1; return (t-a)/(b-a); }
+function ease(x){ return x<0.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2; }
+function eo(x){ return 1-Math.pow(1-x,3); }
+function rnd(k){ var s=Math.sin(k*12.9898)*43758.5453; return s-Math.floor(s); }
+
+function resize(){
+  var ratio=1080/1440, vh=window.innerHeight-50, vw=window.innerWidth;
+  if(vw/vh>ratio){H=vh;W=H*ratio;}else{W=vw;H=W/ratio;}
+  cv.width=W; cv.height=H; SC=W/1080;
+}
+window.addEventListener('resize',function(){ if(!rec) resize(); });
+
+function txt(s,x,y,font,color,alpha,dir){
+  ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle=color; ctx.font=font;
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.direction=dir||'rtl';
+  ctx.fillText(s,x,y); ctx.restore();
+}
+
+function renderAnim(t){
+  var cy=640*SC;
+  ctx.fillStyle=BG; ctx.fillRect(0,0,W,H);
+
+  var g = t>=2300 ? 0 : 1-ease(prog(t,300,2300));
+  var p = eo(prog(t,0,1300));
+
+  /* hero word on two offscreen canvases (black + orange) */
+  if(hc.width!==W||hc.height!==H){ hc.width=W; hc.height=H; oc.width=W; oc.height=H; }
+  hx.clearRect(0,0,W,H); ox.clearRect(0,0,W,H);
+  hx.font='900 100px Cairo'; hx.direction='rtl';
+  var w100=hx.measureText(T_HERO).width||1;
+  var fs=Math.min(100*(900*SC)/w100, 300*SC);
+  var fnt='900 '+fs+'px Cairo';
+  hx.font=fnt; hx.textAlign='center'; hx.textBaseline='middle'; hx.direction='rtl'; hx.fillStyle=DARK;
+  hx.fillText(T_HERO,W/2,cy);
+  ox.font=fnt; ox.textAlign='center'; ox.textBaseline='middle'; ox.direction='rtl'; ox.fillStyle=ORANGE;
+  ox.fillText(T_HERO,W/2,cy);
+
+  var bandH=fs*1.7, y0=cy-bandH/2;
+  if(y0<0) y0=0;
+  if(y0+bandH>H) bandH=H-y0;
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(W*(1-p),0,W*p+1,H); ctx.clip();
+  ctx.drawImage(hc,0,0);
+  if(g>0.001){
+    var n=Math.floor(3+9*g), seed=Math.floor(t/70);
+    for(var i=0;i<n;i++){
+      var ry=y0+rnd(i*7.1+seed)*(bandH-70*SC);
+      var rh=(8+rnd(i*3.3+seed)*50)*SC*(0.4+g*0.6);
+      var dx=(rnd(i*5.7+seed*1.3)-0.5)*2*150*SC*g;
+      ctx.fillStyle=BG; ctx.fillRect(0,ry,W,rh);
+      ctx.drawImage(oc,0,ry,W,rh,dx,ry,W,rh);
+      ctx.drawImage(hc,0,ry,W,rh,-dx*0.35,ry,W,rh);
+    }
+  }
+  ctx.restore();
+
+  if(g>0.001){
+    /* dashed rings */
+    ctx.save(); ctx.strokeStyle=ORANGE; ctx.globalAlpha=Math.min(1,g*1.2);
+    ctx.lineWidth=16*SC; ctx.setLineDash([70*SC,26*SC,20*SC,26*SC]); ctx.lineDashOffset=-t*0.25*SC;
+    ctx.beginPath(); ctx.arc(W/2,cy,430*SC,0,6.2832); ctx.stroke();
+    ctx.lineWidth=7*SC; ctx.lineDashOffset=t*0.2*SC;
+    ctx.beginPath(); ctx.arc(W/2,cy,365*SC,0,6.2832); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+    /* particles */
+    for(var j=0;j<22;j++){
+      var px=W/2+(rnd(j*2.1)-0.5)*1000*SC;
+      var py=cy+(rnd(j*4.4)-0.5)*520*SC-prog(t,0,2300)*60*SC*(rnd(j)+0.2);
+      var sz=(3+rnd(j*9)*5)*SC;
+      ctx.save(); ctx.globalAlpha=g; ctx.fillStyle=(j%3===0)?DARK:ORANGE;
+      ctx.fillRect(px,py,sz,sz); ctx.restore();
+    }
+  }
+
+  /* settled composition */
+  var a1=eo(prog(t,2300,2800));
+  txt(T_HOOK,W/2,380*SC,'700 56px Cairo'.replace('56px',(56*SC)+'px'),SUB,a1);
+  var a2=eo(prog(t,2600,3200));
+  txt(T_SUB,W/2,(900+(1-a2)*24)*SC,'700 '+(64*SC)+'px Cairo',DARK,a2);
+  var a3=eo(prog(t,3000,3600));
+  var cx=640*SC, cyy=1060*SC;
+  txt(T_CTA,cx,cyy,'700 '+(54*SC)+'px Cairo',ORANGE,a3);
+  ctx.save(); ctx.globalAlpha=a3; ctx.strokeStyle=ORANGE; ctx.lineWidth=7*SC; ctx.lineCap='round';
+  var x=170*SC, y=cyy;
+  ctx.beginPath();
+  ctx.moveTo(x+150*SC,y-14*SC);
+  ctx.bezierCurveTo(x+100*SC,y-28*SC, x+55*SC,y+8*SC, x+10*SC,y);
+  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+10*SC,y); ctx.lineTo(x+30*SC,y-18*SC); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+10*SC,y); ctx.lineTo(x+32*SC,y+16*SC); ctx.stroke();
+  ctx.restore();
+  var a4=eo(prog(t,3400,3900));
+  txt(T_HANDLE,W/2,1280*SC,'700 '+(40*SC)+'px Cairo',MUT,a4,'ltr');
+}
+
+function render(t){
+  if(t<INTRO){ renderAnim(POSTER_T); }
+  else       { renderAnim(t-INTRO); }
+}
+
+/* preview loop */
+var t0=0;
+function loop(){
+  var t=(performance.now()-t0)%TOTAL;
+  render(t);
+  document.getElementById('tm').textContent=(t/1000).toFixed(1)+'s / '+(TOTAL/1000).toFixed(1)+'s';
+  raf=requestAnimationFrame(loop);
+}
+
+/* export */
+function dlBlob(b,n){
+  var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=n;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1000);
+}
+function saveBlob(b,n){
+  var f=null; try{ f=new File([b],n,{type:b.type}); }catch(e){}
+  if(f && navigator.canShare && navigator.canShare({files:[f]})){
+    navigator.share({files:[f]}).catch(function(){ dlBlob(b,n); });
+  } else { dlBlob(b,n); }
+}
+function dlPNG(){
+  cancelAnimationFrame(raf); cv.width=1080; cv.height=1440; W=1080; H=1440; SC=1;
+  render(0);
+  cv.toBlob(function(b){ saveBlob(b,'cover.png'); resize(); t0=performance.now(); loop(); },'image/png');
+}
+function toggleRec(){ if(!rec) exportVideo(); }
+async function exportVideo(){
+  rec=true; document.getElementById('rb').textContent='...';
+  var enc=await HME.createH264MP4Encoder();
+  enc.outputFilename='out.mp4'; enc.width=1080; enc.height=1440;
+  enc.frameRate=FPS; enc.quantizationParameter=12; enc.initialize();
+  cancelAnimationFrame(raf); cv.width=1080; cv.height=1440; W=1080; H=1440; SC=1;
+  var dt=1000/FPS, t=0;
+  function step(){
+    if(t<=TOTAL){
+      render(t);
+      var d=ctx.getImageData(0,0,1080,1440).data;
+      enc.addFrameRgba(new Uint8Array(d.buffer));
+      document.getElementById('tm').textContent=Math.round(t/TOTAL*100)+'%';
+      t+=dt; setTimeout(step,0);
+    } else {
+      enc.finalize();
+      var u8=enc.FS.readFile(enc.outputFilename); enc.delete();
+      _vblob=new Blob([u8],{type:'video/mp4'});
+      saveBlob(_vblob,'cover.mp4');
+      rec=false; document.getElementById('rb').textContent='Export Video';
+      resize(); t0=performance.now(); loop();
+    }
+  }
+  step();
+}
+
+async function init(){
+  try{
+    await document.fonts.load('900 158px Cairo', T_HERO);
+    await document.fonts.load('700 60px Cairo', T_SUB);
+    await document.fonts.ready;
+  }catch(e){}
+  resize(); t0=performance.now(); loop();
+}
+init();
+</script>
+</body>
+</html>
